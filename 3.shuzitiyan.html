@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>数字体验 - 非遗手·传承</title>
+    <meta name="description" content="非遗手工艺数字体验 - AR陶艺创作、VR非遗工坊、3D手工艺库、游戏联名">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <style>
+        /* 全局3D透视 */
+        body {
+            perspective: 1500px;
+            transform-style: preserve-3d;
+            overflow-x: hidden;
+        }
+        
+        /* 动态背景网格 */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background-image: 
+                linear-gradient(rgba(64, 176, 224, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(64, 176, 224, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% {
+                transform: perspective(1000px) rotateX(60deg) translateY(0);
+            }
+            100% {
+                transform: perspective(1000px) rotateX(60deg) translateY(60px);
+            }
+        }
+        
+        /* 鼠标跟随特效 */
+        /* 手工艺手势鼠标跟随器 */
+        .mouse-follower {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s ease-out;
+        }
+        
+        .mouse-follower svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+        
+        .mouse-follower.hovering {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        .hand-hover .finger-1 { transform: rotate(-15deg); }
+        .hand-hover .finger-2 { transform: rotate(-10deg); }
+        .hand-hover .finger-3 { transform: rotate(-5deg); }
+        .hand-hover .finger-4 { transform: rotate(-8deg); }
+        .hand-hover .finger-5 { transform: rotate(-12deg); }
+        
+        .mouse-follower.clicking {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+        
+        .hand-click .finger-1, .hand-click .finger-2, 
+        .hand-click .finger-3, .hand-click .finger-4, 
+        .hand-click .finger-5 { transform: rotate(-30deg); }
+        
+        .mouse-follower.dragging {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+        
+        .mouse-follower::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            filter: blur(4px);
+        }
+        
+        /* 滚动进度条 */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #40B0E0, #daa520);
+            z-index: 9998;
+            transition: width 0.1s ease;
+            box-shadow: 0 0 10px rgba(64, 176, 224, 0.5);
+        }
+        
+        /* 浮动动画 */
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        
+        /* 数字体验页面样式 - 使用首页Hero样式 */
+        .hero-section {
+            min-height: 75vh;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(64, 176, 224, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 5%;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        /* 装饰元素 */
+        .hero-decoration {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: floatOrb 10s ease-in-out infinite;
+        }
+        
+        @keyframes floatOrb {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translate(-30px, 30px) scale(1.1);
+                opacity: 0.8;
+            }
+        }
+        
+        /* 粒子背景 */
+        .hero-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .hero-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: particleFloat 10s linear infinite;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(80vh) translateX(20px) scale(1);
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) translateX(-20px) scale(0.5);
+                opacity: 0;
+            }
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-text {
+            animation: slideInLeft 1s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            padding: 0.35rem 0.9rem;
+            background: rgba(64, 176, 224, 0.15);
+            border: 1px solid rgba(64, 176, 224, 0.3);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            margin-bottom: 1.2rem;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(64, 176, 224, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px 5px rgba(64, 176, 224, 0.2);
+            }
+        }
+        
+        .hero-title {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #40B0E0, #88D8F0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            line-height: 1.15;
+            text-shadow: 0 0 30px rgba(64, 176, 224, 0.3);
+            animation: titleShimmer 4s ease-in-out infinite;
+            background-size: 200% 200%;
+        }
+        
+        @keyframes titleShimmer {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            max-width: 450px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.8rem;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #40B0E0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        /* 英雄区域图片 */
+        .hero-visual {
+            animation: slideInRight 1s ease-out 0.2s both;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .hero-image-wrapper {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            animation: imageFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes imageFloat {
+            0%, 100% {
+                transform: translateY(0) rotateY(0);
+            }
+            50% {
+                transform: translateY(-15px) rotateY(5deg);
+            }
+        }
+        
+        .hero-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+        
+        .image-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(64, 176, 224, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        
+        .hero-btn {
+            display: inline-block;
+            padding: 0.65rem 1.8rem;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .hero-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), #2e8ab8);
+            color: white;
+            border: 1.5px solid transparent;
+            box-shadow: 0 4px 12px rgba(64, 176, 224, 0.3);
+        }
+        
+        .hero-btn.primary:hover {
+            transform: translateY(-3px) translateZ(8px) scale(1.03);
+            box-shadow: 
+                0 15px 30px rgba(64, 176, 224, 0.4),
+                0 0 40px rgba(64, 176, 224, 0.2);
+        }
+        
+        .hero-btn.secondary {
+            background: transparent;
+            border: 1.5px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .hero-btn.secondary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-5px) translateZ(10px) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(64, 176, 224, 0.4),
+                0 0 50px rgba(64, 176, 224, 0.2);
+        }
+        
+        .hero-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .hero-btn:hover::before {
+            left: 100%;
+        }
+        
+        /* 体验卡片网格 - 完全响应式 */
+        .experience-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: clamp(1.5rem, 3vw, 2rem);
+            padding: 3rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            perspective: 2000px;
+        }
+        
+        .experience-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            backdrop-filter: blur(15px);
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }
+        
+        .experience-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(64, 176, 224, 0.1) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .experience-card:hover::before {
+            opacity: 1;
+        }
+        
+        .experience-card:hover {
+            transform: translateY(-15px) rotateX(5deg) rotateY(-5deg) translateZ(30px);
+            border-color: var(--primary-color);
+            box-shadow: 
+                0 25px 50px rgba(64, 176, 224, 0.3),
+                0 0 60px rgba(218, 165, 32, 0.2);
+        }
+        
+        .experience-icon {
+            width: clamp(60px, 15vw, 100px);
+            height: clamp(60px, 15vw, 100px);
+            margin: 0 auto 1.5rem;
+            background: rgba(64,176,224,0.1);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(2rem, 6vw, 3rem);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: iconPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        .experience-card:hover .experience-icon {
+            transform: scale(1.2) rotateZ(10deg);
+            filter: drop-shadow(0 10px 25px rgba(64, 176, 224, 0.5));
+        }
+        
+        /* 手工艺3D展示区 - 响应式网格 */
+        .craft-showcase {
+            padding: 4rem 5%;
+            background: linear-gradient(135deg, #0f172a 0%, #1a1a2e 100%);
+        }
+        
+        .craft-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: clamp(1rem, 2vw, 2rem);
+            max-width: 1000px;
+            margin: 2rem auto 0;
+        }
+        
+        .craft-item {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+        }
+        
+        .craft-sphere {
+            width: clamp(80px, 20vw, 120px);
+            height: clamp(80px, 20vw, 120px);
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* VR体验区 - 响应式双列 */
+        .vr-experience {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 4rem 5%;
+            max-width: 1200px;
+            margin: 0 auto;
+            align-items: center;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* 游戏联名 - 响应式 */
+        .game-collab {
+            padding: 4rem 5%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        .game-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.02);
+            border-radius: 32px;
+            padding: clamp(1.5rem, 4vw, 3rem);
+        }
+        #zhubanbg{
+        	background-image: url(img/taoyibg.jpg);
+        	background-repeat: no-repeat;
+        	background-size: cover;
+        	background-position: center;
+        }
+        @media screen and (max-width: 480px) {
+            .experience-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .craft-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 公共导航栏 ===== -->
+    <header class="site-header">
+        <div class="header-top">
+            <div class="site-title">
+                <h1>非遗手</h1>
+                <span class="tagline">传统手工艺 · 数字创新 · 文化传承</span>
+            </div>
+            <div class="search-container">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="search" class="search-input" placeholder="搜索数字体验...">
+            </div>
+        </div>
+    </header>
+    
+    <!-- 动态背景网格 -->
+    <div class="bg-grid"></div>
+
+    <nav class="main-navigation">
+        <div class="nav-container">
+            <div class="logo-container">
+                <a href="1.shouye.html" class="logo">
+                    <img src="img/shuimo.jpg" alt="非遗手" width="40" height="40">
+                    <span class="logo-text">非遗手</span>
+                </a>
+            </div>
+            <ul class="main-nav" id="main-nav">
+                <li><a href="1.shouye.html">首页</a></li>
+                <li><a href="2.feiyiminglu.html">非遗名录</a></li>
+                <li><a href="3.shuzitiyan.html">数字体验</a></li>
+                <li><a href="4.gongyijiaoxue.html">工艺教学</a></li>
+                <li><a href="5.wenhuagushi.html">文化故事</a></li>
+            </ul>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav">
+                <span class="hamburger"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== 数字体验内容 ===== -->
+    <main>
+        <!-- 粒子背景 -->
+        <div class="hero-particles" id="heroParticles"></div>
+        
+        <section class="hero-section" id="zhubanbg">
+            <!-- 装饰元素 -->
+            <div class="hero-decoration"></div>
+            
+            <div class="hero-container">
+                <div class="hero-text">
+                    <div class="hero-badge">数字体验 · 技术创新</div>
+                    <h1 class="hero-title">数字重生 · 手艺新生</h1>
+                    <p class="hero-subtitle">当千年制陶技艺遇见前沿数字技术，传统手工艺在虚拟世界中焕发全新生命力</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">85%</span>
+                            <span class="stat-label">还原度</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">99%</span>
+                            <span class="stat-label">精度控制</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">90%</span>
+                            <span class="stat-label">沉浸感</span>
+                        </div>
+                    </div>
+                    <div class="hero-buttons">
+                        <a href="#" class="hero-btn primary">开始体验</a>
+                        <a href="#craft3d" class="hero-btn secondary">3D手工艺库</a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-image-wrapper">
+                        <img src="img/hero-main.jpg" alt="非遗手工艺品" class="hero-image">
+                        <div class="image-glow"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 核心体验卡片 -->
+        <div class="experience-grid">
+            <div class="experience-card">
+                <div class="experience-icon">🏺</div>
+                <h3 style="color: white; margin-bottom: 1rem;">AR陶艺创作</h3>
+                <p style="color: #94a3b8; line-height: 1.8;">通过手机摄像头，在真实空间中模拟拉坯、塑形。实时模拟陶土质感，支持雕刻与上色效果。</p>
+                <span style="display: inline-block; margin-top: 1.5rem; color: var(--yan-cai-gold);">即将上线</span>
+            </div>
+            <div class="experience-card">
+                <div class="experience-icon">🥽</div>
+                <h3 style="color: white; margin-bottom: 1rem;">VR非遗工坊</h3>
+                <p style="color: #94a3b8; line-height: 1.8;">沉浸式探访景德镇古窑，360度观看非遗传承人现场制陶，放大查看拉坯、利坯等细节。</p>
+                <span style="display: inline-block; margin-top: 1.5rem; color: var(--primary-color);">体验中</span>
+            </div>
+            <div class="experience-card">
+                <div class="experience-icon">🖐️</div>
+                <h3 style="color: white; margin-bottom: 1rem;">3D手工艺库</h3>
+                <p style="color: #94a3b8; line-height: 1.8;">高精度三维扫描传统手工艺，可360度旋转观察，了解不同技艺的手势与工具运用。</p>
+                <span style="display: inline-block; margin-top: 1.5rem; color: var(--text-secondary);">48种技艺</span>
+            </div>
+        </div>
+
+        <!-- 3D手工艺展示区 -->
+        <section id="craft3d" class="craft-showcase">
+            <h2 style="text-align: center; color: white; font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 2rem;">✨ 传统手工艺 · 3D数字库</h2>
+            <div class="craft-grid">
+                <div class="craft-item">
+                    <div class="craft-sphere" style="background: radial-gradient(circle at 30% 30%, #d4a373, #9c6644);"></div>
+                    <h4 style="color: white; margin-bottom: 0.3rem;">拉坯</h4>
+                    <p style="color: #94a3b8;">景德镇</p>
+                </div>
+                <div class="craft-item">
+                    <div class="craft-sphere" style="background: radial-gradient(circle at 30% 30%, #b23b2b, #7f2a1f);"></div>
+                    <h4 style="color: white; margin-bottom: 0.3rem;">紫砂拍打</h4>
+                    <p style="color: #94a3b8;">宜兴</p>
+                </div>
+                <div class="craft-item">
+                    <div class="craft-sphere" style="background: radial-gradient(circle at 30% 30%, #6b8e4c, #3a5f2a);"></div>
+                    <h4 style="color: white; margin-bottom: 0.3rem;">刻花</h4>
+                    <p style="color: #94a3b8;">龙泉</p>
+                </div>
+                <div class="craft-item">
+                    <div class="craft-sphere" style="background: radial-gradient(circle at 30% 30%, #e6b8a2, #c98b7c);"></div>
+                    <h4 style="color: white; margin-bottom: 0.3rem;">修坯</h4>
+                    <p style="color: #94a3b8;">德化</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VR体验区 -->
+        <section class="vr-experience">
+            <div style="border-radius: 24px; overflow: hidden;">
+                <div style="width: 100%; padding-top: 56.25%; background: linear-gradient(135deg, #1a3657, #2a4a5a); position: relative;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 5rem;">🥽</div>
+                </div>
+            </div>
+            <div>
+                <h3 style="color: white; font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 1rem;">VR景德镇 · 古窑</h3>
+                <p style="color: #94a3b8; line-height: 1.8; margin-bottom: 1.5rem;">清代镇窑、元代馒头窑，通过虚拟现实技术，可近距离观察窑炉结构、烧制过程和非遗传承人的制陶手法。</p>
+                <ul style="list-style: none; color: #94a3b8; margin-bottom: 2rem;">
+                    <li style="margin-bottom: 0.5rem;">✓ 超高精度8K纹理</li>
+                    <li style="margin-bottom: 0.5rem;">✓ 实时工艺流程讲解</li>
+                    <li style="margin-bottom: 0.5rem;">✓ 多人协同观摩</li>
+                </ul>
+                <a href="#" style="display: inline-block; padding: 0.8rem 2rem; background: var(--primary-color); color: white; text-decoration: none; border-radius: 50px;">立即体验VR</a>
+            </div>
+        </section>
+
+        <!-- 游戏联名 -->
+        <section class="game-collab">
+            <div class="game-showcase">
+                <div>
+                    <h3 style="color: white; font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 1rem;">《原神》× 非遗手工艺</h3>
+                    <p style="color: var(--yan-cai-gold); margin-bottom: 1rem;">传统陶瓷纹样的数字新生</p>
+                    <p style="color: #94a3b8; line-height: 1.8;">将景德镇青花、龙泉青瓷纹样应用于游戏角色服装，首次实现陶瓷质感在实时渲染中的表现。</p>
+                    <div style="display: flex; gap: 1.5rem; margin: 2rem 0;">
+                        <div><span style="display: block; font-size: 2rem;">🏺</span><span style="color: white;">青花质感</span></div>
+                        <div><span style="display: block; font-size: 2rem;">🍵</span><span style="color: white;">紫砂纹理</span></div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 8rem;">🎮</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== 公共页脚 ===== -->
+    <footer role="contentinfo">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <img src="img/logo-white.svg" alt="非遗手" width="140" height="40" loading="lazy">
+                        <p>传承千年手工艺 · 创新数字文化体验</p>
+                    </div>
+                    <div class="social-links">
+                        <a href="#" aria-label="微博">📱</a>
+                        <a href="#" aria-label="微信">💬</a>
+                        <a href="#" aria-label="B站">▶️</a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>快速链接</h3>
+                    <ul>
+                        <li><a href="1.shouye.html">首页</a></li>
+                        <li><a href="2.feiyiminglu.html">非遗名录</a></li>
+                        <li><a href="3.shuzitiyan.html">数字体验</a></li>
+                        <li><a href="4.gongyijiaoxue.html">工艺教学</a></li>
+                        <li><a href="5.wenhuagushi.html">文化故事</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>联系我们</h3>
+                    <ul>
+                        <li><span>📍</span> 北京东城区美术馆后街23号</li>
+                        <li><span>📞</span> 010-8888 9999</li>
+                        <li><span>✉️</span> info@feiyi-hand.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2018-<span id="current-year">2025</span> 非遗手. 保留所有权利</p>
+                <div class="legal-links">
+                    <a href="#">隐私政策</a><span>|</span>
+                    <a href="#">使用条款</a><span>|</span>
+                    <a href="#">网站地图</a>
+                </div>
+            </div>
+        </div>
+        <button class="back-to-top" aria-label="回到顶部">↑</button>
+    </footer>
+
+    <script src="js/components.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 3D卡片倾斜效果
+            function init3DCards() {
+                document.querySelectorAll('.experience-card').forEach(card => {
+                    card.addEventListener('mousemove', function(e) {
+                        const rect = this.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateX = (y - centerY) / 10;
+                        const rotateY = (centerX - x) / 10;
+                        
+                        this.style.transform = `translateY(-15px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`;
+                    });
+                    
+                    card.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translateY(0) rotateX(0) rotateY(0) translateZ(0)';
+                    });
+                });
+            }
+            
+            // 滚动入场动画
+            const observer = new IntersectionObserver(
+                function(entries) {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }
+                    });
+                },
+                { threshold: 0.1 }
+            );
+            
+            document.querySelectorAll('.experience-card').forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = `all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.1}s`;
+                observer.observe(card);
+            });
+            
+            // 鼠标跟随特效
+            // 鼠标跟随特效 - 手工艺手势动画
+            function initMouseFollower() {
+                const follower = document.createElement('div');
+                follower.className = 'mouse-follower';
+                
+                follower.innerHTML = `
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="50" cy="70" rx="25" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        <g class="finger finger-1" style="transform-origin: 55px 65px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="35" cy="55" rx="8" ry="15" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1" transform="rotate(-20 35 55)"/>
+                        </g>
+                        <g class="finger finger-2" style="transform-origin: 45px 62px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="45" cy="35" rx="7" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        <g class="finger finger-3" style="transform-origin: 52px 60px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="52" cy="30" rx="6" ry="22" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        <g class="finger finger-4" style="transform-origin: 59px 60px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="59" cy="32" rx="6" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        <g class="finger finger-5" style="transform-origin: 66px 62px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="66" cy="38" rx="5" ry="16" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        <path d="M45 68 Q50 60 55 68" fill="none" stroke="#e8d5bc" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                `;
+                
+                document.body.appendChild(follower);
+                
+                let mouseX = 0, mouseY = 0;
+                let followerX = 0, followerY = 0;
+                let isHovering = false;
+                
+                window.addEventListener('mousemove', function(e) {
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    
+                    const target = e.target;
+                    const isInteractive = target.closest('button, a, [role="button"], .card, .hero-btn, .nav-link');
+                    
+                    if (isInteractive && !isHovering) {
+                        isHovering = true;
+                        follower.classList.add('hovering');
+                        follower.querySelector('svg g:nth-child(2)').classList.add('hand-hover');
+                    } else if (!isInteractive && isHovering) {
+                        isHovering = false;
+                        follower.classList.remove('hovering');
+                        follower.querySelector('svg g:nth-child(2)').classList.remove('hand-hover');
+                    }
+                });
+                
+                window.addEventListener('mousedown', function(e) {
+                    follower.classList.add('clicking');
+                    follower.querySelector('svg g:nth-child(2)').classList.add('hand-click');
+                    follower.querySelector('svg g:nth-child(2)').classList.remove('hand-hover');
+                });
+                
+                window.addEventListener('mouseup', function(e) {
+                    follower.classList.remove('clicking');
+                    follower.querySelector('svg g:nth-child(2)').classList.remove('hand-click');
+                    
+                    const target = e.target;
+                    const isInteractive = target.closest('button, a, [role="button"], .card, .hero-btn, .nav-link');
+                    if (isInteractive) {
+                        follower.querySelector('svg g:nth-child(2)').classList.add('hand-hover');
+                    }
+                });
+                
+                function animateFollower() {
+                    followerX += (mouseX - followerX) * 0.18;
+                    followerY += (mouseY - followerY) * 0.18;
+                    follower.style.left = followerX + 'px';
+                    follower.style.top = followerY + 'px';
+                    requestAnimationFrame(animateFollower);
+                }
+                animateFollower();
+            }
+            
+            // 滚动进度条
+            function initScrollProgress() {
+                const progressBar = document.createElement('div');
+                progressBar.className = 'scroll-progress';
+                document.body.appendChild(progressBar);
+                
+                window.addEventListener('scroll', function() {
+                    const scrollTop = window.scrollY;
+                    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    const progress = (scrollTop / docHeight) * 100;
+                    progressBar.style.width = progress + '%';
+                });
+            }
+            
+            // 导航栏滚动效果
+            function initNavScroll() {
+                const nav = document.querySelector('.main-navigation');
+                
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 50) {
+                        nav.classList.add('scrolled');
+                    } else {
+                        nav.classList.remove('scrolled');
+                    }
+                });
+            }
+            
+            // 元素浮动动画
+            function initFloatAnimations() {
+                document.querySelectorAll('.float-animation').forEach((el, index) => {
+                    el.style.animationDelay = index * 0.2 + 's';
+                });
+            }
+            
+            // 按钮点击涟漪效果
+            document.querySelectorAll('.btn-primary, .experience-card a').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.3);
+                        left: ${x}px;
+                        top: ${y}px;
+                        pointer-events: none;
+                        animation: ripple 0.6s ease-out forwards;
+                    `;
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
+            
+            // 平滑滚动到锚点
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // 添加涟漪动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 初始化所有效果
+            init3DCards();
+            initMouseFollower();
+            initScrollProgress();
+            initNavScroll();
+            initFloatAnimations();
+            
+            // 初始化英雄区域粒子动画
+            initHeroParticles();
+        });
+        
+        // 粒子动画
+        function initHeroParticles() {
+            const container = document.getElementById('heroParticles');
+            if (!container) return;
+            
+            // 清除现有粒子
+            container.innerHTML = '';
+            
+            // 创建20个粒子
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'hero-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (8 + Math.random() * 6) + 's';
+                container.appendChild(particle);
+            }
+        }
+    </script>
+</body>
+</html>

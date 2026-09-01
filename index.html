@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>非遗手 · 相遇</title>
+    <meta name="description" content="非遗手 - 传统制陶技艺与数字技术的相遇">
+    
+    <!-- 预加载关键图片 -->
+    <link rel="preload" href="img/jixieshou.png" as="image">
+    <link rel="preload" href="img/renshou.png" as="image">
+    
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 100vw;
+            width: 100dvw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #0a1929;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+        }
+        
+        /* ===== 模糊背景层 ===== */
+        .blur-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: linear-gradient(135deg, #050810 0%, #0d1520 50%, #0a0f1c 100%);
+        }
+        
+        /* ===== 动画舞台 ===== */
+        .animation-stage {
+            position: relative;
+            width: 100vw;
+            width: 100dvw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        /* ===== 背景光效层 ===== */
+        .light-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .light-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0;
+            animation: orbFloat 8s ease-in-out infinite;
+        }
+        
+        .light-orb.left-orb {
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.3) 0%, rgba(64, 176, 224, 0) 70%);
+            left: -10vw;
+            top: 30%;
+            animation-delay: 0s;
+        }
+        
+        .light-orb.right-orb {
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(218, 165, 32, 0.3) 0%, rgba(218, 165, 32, 0) 70%);
+            right: -10vw;
+            top: 30%;
+            animation-delay: 0.5s;
+        }
+        
+        @keyframes orbFloat {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0;
+            }
+            25% {
+                opacity: 0.6;
+            }
+            50% {
+                transform: translate(5vw, -3vh) scale(1.1);
+                opacity: 0.8;
+            }
+            75% {
+                opacity: 0.6;
+            }
+        }
+        
+        /* ===== 粒子效果层 ===== */
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 215, 0, 0) 70%);
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        /* ===== 图片通用样式 ===== */
+        .image {
+            position: absolute;
+            border-radius: 8px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.5),
+                0 15px 30px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.1);
+            overflow: visible;
+            object-fit: contain;
+            background: transparent;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform, left, right, bottom, opacity;
+            pointer-events: none;
+            filter: brightness(1.05) contrast(1.05);
+        }
+        
+        /* 3D立体光效 */
+        .image::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.15),
+                rgba(255, 255, 255, 0.3),
+                rgba(255, 255, 255, 0.15),
+                transparent
+            );
+            z-index: 5;
+            opacity: 0;
+            border-radius: 8px;
+        }
+        
+        /* 两只手相遇时的连接光束 */
+        .connection-beam {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                rgba(64, 176, 224, 0.8), 
+                rgba(255, 215, 0, 1), 
+                rgba(218, 165, 32, 0.8));
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            border-radius: 4px;
+            opacity: 0;
+            filter: blur(4px);
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 40px rgba(64, 176, 224, 0.6);
+        }
+        
+        .connection-beam.active {
+            animation: beamExpand 1.5s ease-out forwards;
+        }
+        
+        @keyframes beamExpand {
+            0% {
+                width: 0;
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            100% {
+                width: 100px;
+                opacity: 0;
+            }
+        }
+        
+        /* 相遇时的冲击波效果 */
+        .shockwave {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            opacity: 0;
+        }
+        
+        .shockwave.active {
+            animation: shockwaveExpand 1s ease-out forwards;
+        }
+        
+        @keyframes shockwaveExpand {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+                border-width: 4px;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+        
+        /* 环绕粒子轨道 */
+        .orbit-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 1) 0%, rgba(64, 176, 224, 0.8) 100%);
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+        
+        .orbit-particle.orbit1 { animation: orbit1 3s linear infinite; }
+        .orbit-particle.orbit2 { animation: orbit2 3.5s linear infinite; animation-delay: -0.5s; }
+        .orbit-particle.orbit3 { animation: orbit3 4s linear infinite; animation-delay: -1s; }
+        
+        @keyframes orbit1 {
+            0% { transform: rotate(0deg) translateX(80px) translateY(-50%); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: rotate(360deg) translateX(80px) translateY(-50%); opacity: 0; }
+        }
+        
+        @keyframes orbit2 {
+            0% { transform: rotate(0deg) translateX(100px) translateY(-50%); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: rotate(-360deg) translateX(100px) translateY(-50%); opacity: 0; }
+        }
+        
+        @keyframes orbit3 {
+            0% { transform: rotate(0deg) translateX(120px) translateY(-50%); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: rotate(360deg) translateX(120px) translateY(-50%); opacity: 0; }
+        }
+        
+        /* ===== 左侧图片 ===== */
+        .left-image {
+            width: min(421px, 40vw);
+            height: auto;
+            aspect-ratio: 421/246;
+            left: -50vw;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: slideInFromLeft 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation-play-state: paused;
+            z-index: 2;
+        }
+        
+        /* ===== 右侧图片 ===== */
+        .right-image {
+            width: min(421px, 40vw);
+            height: auto;
+            aspect-ratio: 421/246;
+            right: -50vw;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: slideInFromRight 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation-play-state: paused;
+            z-index: 2;
+        }
+        
+        /* ===== 动画定义 - 优化曲线 ===== */
+        @keyframes slideInFromLeft {
+            0% {
+                left: -60vw;
+                opacity: 0.2;
+                transform: translateY(-50%) scale(0.6) rotateY(20deg);
+            }
+            30% {
+                opacity: 0.6;
+            }
+            100% {
+                left: calc(50% - min(421px, 40vw) - clamp(30px, 5vw, 50px));
+                transform: translateY(-50%) scale(1) rotateY(0deg);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideInFromRight {
+            0% {
+                right: -60vw;
+                opacity: 0.2;
+                transform: translateY(-50%) scale(0.6) rotateY(-20deg);
+            }
+            30% {
+                opacity: 0.6;
+            }
+            100% {
+                right: calc(50% - min(421px, 40vw) - clamp(30px, 5vw, 50px));
+                transform: translateY(-50%) scale(1) rotateY(0deg);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(-50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50%) scale(0.8) translateX(0);
+            }
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        /* ===== 加载进度条 ===== */
+        .loading-bar {
+            position: fixed;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            width: min(300px, 70vw);
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 100;
+        }
+        
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #40B0E0, #daa520);
+            transition: width 0.3s ease;
+        }
+        
+        /* ===== 提示文字 ===== */
+        .hint-text {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            z-index: 50;
+            opacity: 0;
+            animation: fadeIn 1s ease 3s forwards;
+            pointer-events: none;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.3);
+            padding: 8px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .hint-text i {
+            color: var(--yan-cai-gold);
+            margin-right: 5px;
+        }
+        
+        /* ===== 响应式适配 ===== */
+        @media (max-width: 768px) {
+            .left-image, .right-image {
+                width: min(300px, 45vw);
+            }
+            
+            .brand-logo {
+                top: 15px;
+                left: 15px;
+            }
+            
+            .hint-text {
+                bottom: 20px;
+                font-size: 0.8rem;
+                padding: 6px 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .left-image, .right-image {
+                width: min(220px, 45vw);
+            }
+            
+            .brand-text {
+                font-size: 1.2rem;
+            }
+            
+            .hint-text {
+                bottom: 15px;
+                font-size: 0.7rem;
+                padding: 5px 12px;
+            }
+        }
+        
+        /* 横屏适配 */
+        @media (orientation: landscape) and (max-height: 600px) {
+            .left-image, .right-image {
+                width: min(300px, 35vw);
+            }
+        }
+        
+        /* 品牌标识样式 */
+        .brand-logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s ease 4s forwards;
+        }
+        
+        .brand-logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid rgba(255, 215, 0, 0.5);
+        }
+        
+        .brand-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #40B0E0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            white-space: nowrap;
+        }
+        
+        /* 减少动画偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            .image {
+                animation: none !important;
+                transition: none !important;
+            }
+            
+            .left-image {
+                left: calc(50% - min(421px, 40vw) - 20px);
+            }
+            
+            .right-image {
+                right: calc(50% - min(421px, 40vw) - 20px);
+            }
+            
+            .brand-logo {
+                opacity: 1;
+                animation: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .brand-logo {
+                top: 15px;
+                left: 15px;
+            }
+            
+            .brand-logo img {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .brand-text {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 模糊背景层 -->
+    <div class="blur-bg"></div>
+    
+    <div class="animation-stage" id="stage" onclick="redirectToHome()">
+        <!-- 背景光效层 -->
+        <div class="light-layer" id="lightLayer">
+            <div class="light-orb left-orb"></div>
+            <div class="light-orb right-orb"></div>
+        </div>
+        
+        <!-- 粒子效果层 -->
+        <div class="particles-container" id="particlesContainer"></div>
+        
+        <!-- 品牌标识 -->
+        <div class="brand-logo">
+            <img src="img/haibao.jpg" alt="非遗手" loading="eager">
+            <span class="brand-text">非遗手</span>
+        </div>
+        
+        <!-- 左侧图片 - 机械手/科技 -->
+        <img src="img/jixieshou.png" alt="数字科技 · 机械手" class="image left-image" id="leftImage" loading="eager">
+        
+        <!-- 右侧图片 - 人手/传统 -->
+        <img src="img/renshou.png" alt="传统工艺 · 制陶之手" class="image right-image" id="rightImage" loading="eager">
+        
+        <!-- 加载进度条 -->
+        <div class="loading-bar" id="loadingBar">
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+        
+        <!-- 提示文字 -->
+        <div class="hint-text" id="hintText">
+            <i>👆</i> 点击进入官网
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ===== 获取DOM元素 =====
+            const leftImage = document.getElementById('leftImage');
+            const rightImage = document.getElementById('rightImage');
+            const stage = document.getElementById('stage');
+            const loadingBar = document.getElementById('loadingBar');
+            const loadingProgress = document.getElementById('loadingProgress');
+            const hintText = document.getElementById('hintText');
+            
+            // ===== 动画状态 =====
+            let isAnimating = false;
+            let leftAnimationEnded = false;
+            let rightAnimationEnded = false;
+            let imagesLoaded = 0;
+            const totalImages = 2;
+            
+            // ===== 清理所有定时器 =====
+            function clearAllTimeouts() {
+                if (window.animationTimeouts) {
+                    window.animationTimeouts.forEach(timeout => clearTimeout(timeout));
+                }
+                window.animationTimeouts = [];
+            }
+            
+            // ===== 检查所有图片是否加载完成 =====
+            function checkImagesLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded >= totalImages) {
+                    // 所有图片加载完成，隐藏加载条
+                    if (loadingBar) {
+                        setTimeout(() => {
+                            loadingBar.style.opacity = '0';
+                            setTimeout(() => {
+                                loadingBar.style.display = 'none';
+                            }, 500);
+                        }, 500);
+                    }
+                    
+                    // 自动播放动画
+                    setTimeout(() => {
+                        startAnimation();
+                    }, 500);
+                }
+            }
+            
+            // ===== 预加载图片 =====
+            function preloadImages() {
+                const images = [
+                    'img/jixieshou.png',
+                    'img/renshou.png'
+                ];
+                
+                images.forEach(src => {
+                    const img = new Image();
+                    img.onload = checkImagesLoaded;
+                    img.onerror = checkImagesLoaded; // 即使加载失败也继续
+                    img.src = src;
+                });
+                
+                // 显示加载进度
+                if (loadingBar) loadingBar.style.display = 'block';
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 10;
+                    if (loadingProgress) loadingProgress.style.width = progress + '%';
+                    if (progress >= 100 || imagesLoaded >= totalImages) {
+                        clearInterval(interval);
+                        if (loadingProgress) loadingProgress.style.width = '100%';
+                    }
+                }, 100);
+            }
+            
+            // ===== 根据屏幕尺寸获取动画位置 =====
+            function getImageWidth() {
+                if (window.innerWidth <= 480) return 220;
+                if (window.innerWidth <= 768) return 250;
+                if (window.innerWidth <= 900) return 300;
+                if (window.innerWidth <= 1200) return 360;
+                return 421;
+            }
+            
+            function getSpacing() {
+                if (window.innerWidth <= 480) return 30;
+                if (window.innerWidth <= 768) return 35;
+                if (window.innerWidth <= 900) return 40;
+                if (window.innerWidth <= 1200) return 45;
+                return 50;
+            }
+            
+            // ===== 重置到初始状态 =====
+            function resetToInitial() {
+                clearAllTimeouts();
+                isAnimating = false;
+                leftAnimationEnded = false;
+                rightAnimationEnded = false;
+                
+                // 移除所有动画类
+                leftImage.classList.remove('fade-out');
+                rightImage.classList.remove('fade-out');
+                
+                // 暂停动画
+                leftImage.style.animation = 'none';
+                rightImage.style.animation = 'none';
+                
+                // 强制重绘
+                void leftImage.offsetWidth;
+                void rightImage.offsetWidth;
+                
+                // 设置初始位置
+                leftImage.style.left = '-60vw';
+                rightImage.style.right = '-60vw';
+                leftImage.style.display = 'block';
+                rightImage.style.display = 'block';
+                leftImage.style.opacity = '0.2';
+                rightImage.style.opacity = '0.2';
+                leftImage.style.transform = 'translateY(-50%) scale(0.6)';
+                rightImage.style.transform = 'translateY(-50%) scale(0.6)';
+                
+                // 重新添加动画并暂停
+                leftImage.style.animation = 'slideInFromLeft 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                rightImage.style.animation = 'slideInFromRight 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                leftImage.style.animationPlayState = 'paused';
+                rightImage.style.animationPlayState = 'paused';
+            }
+            
+            // ===== 创建粒子效果 =====
+            function createParticles() {
+                const container = document.getElementById('particlesContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                const particleCount = 30;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    const isLeft = i % 2 === 0;
+                    const startX = isLeft ? '10%' : '90%';
+                    const startY = 30 + Math.random() * 40;
+                    const endX = isLeft ? '30%' : '70%';
+                    const endY = 20 + Math.random() * 60;
+                    
+                    particle.style.cssText = `
+                        left: ${startX};
+                        top: ${startY}%;
+                        animation: particleFloat ${2 + Math.random() * 2}s ease-out forwards;
+                        animation-delay: ${i * 50}ms;
+                    `;
+                    
+                    container.appendChild(particle);
+                    
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes particleFloat {
+                            0% {
+                                opacity: 0;
+                                transform: translate(0, 0) scale(0);
+                            }
+                            20% {
+                                opacity: 1;
+                                transform: translate(${isLeft ? '5vw' : '-5vw'}, -5vh) scale(1);
+                            }
+                            100% {
+                                opacity: 0;
+                                transform: translate(${isLeft ? endX : '-' + (100 - parseInt(endX))}%, ${endY - startY}vh) scale(0.5);
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 4000);
+            }
+            
+            // ===== 开始动画 =====
+            function startAnimation() {
+                if (isAnimating) return;
+                
+                isAnimating = true;
+                leftAnimationEnded = false;
+                rightAnimationEnded = false;
+                
+                // 恢复左右图片动画
+                leftImage.style.animationPlayState = 'running';
+                rightImage.style.animationPlayState = 'running';
+                
+                // 添加动画结束监听
+                leftImage.addEventListener('animationend', handleLeftAnimationEnd, { once: true });
+                rightImage.addEventListener('animationend', handleRightAnimationEnd, { once: true });
+            }
+            
+            // ===== 左侧动画结束 =====
+            function handleLeftAnimationEnd() {
+                leftAnimationEnded = true;
+                const imgWidth = getImageWidth();
+                const spacing = getSpacing();
+                leftImage.style.left = `calc(50% - ${imgWidth}px - ${spacing}px)`;
+                leftImage.style.transform = 'translateY(-50%) scale(1)';
+                leftImage.style.opacity = '1';
+                
+                if (rightAnimationEnded) {
+                    handleBothImagesComplete();
+                }
+            }
+            
+            // ===== 右侧动画结束 =====
+            function handleRightAnimationEnd() {
+                rightAnimationEnded = true;
+                const imgWidth = getImageWidth();
+                const spacing = getSpacing();
+                rightImage.style.right = `calc(50% - ${imgWidth}px - ${spacing}px)`;
+                rightImage.style.transform = 'translateY(-50%) scale(1)';
+                rightImage.style.opacity = '1';
+                
+                if (leftAnimationEnded) {
+                    handleBothImagesComplete();
+                }
+            }
+            
+            // ===== 两张图片都完成移动 =====
+            function handleBothImagesComplete() {
+                createParticles();
+                
+                // 添加连接光束效果
+                createConnectionBeam();
+                
+                // 添加冲击波效果
+                createShockwave();
+                
+                // 添加环绕粒子轨道
+                createOrbitParticles();
+                
+                // 延迟淡出
+                setTimeout(() => {
+                    leftImage.classList.add('fade-out');
+                    rightImage.classList.add('fade-out');
+                    
+                    const timeout1 = setTimeout(() => {
+                        leftImage.style.display = 'none';
+                        rightImage.style.display = 'none';
+                    }, 1000);
+                    
+                    window.animationTimeouts.push(timeout1);
+                }, 800);
+            }
+            
+            // ===== 创建连接光束 =====
+            function createConnectionBeam() {
+                const beam = document.createElement('div');
+                beam.className = 'connection-beam';
+                stage.appendChild(beam);
+                
+                setTimeout(() => {
+                    beam.classList.add('active');
+                }, 100);
+                
+                setTimeout(() => {
+                    beam.remove();
+                }, 2000);
+            }
+            
+            // ===== 创建冲击波效果 =====
+            function createShockwave() {
+                // 创建多层冲击波
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const wave = document.createElement('div');
+                        wave.className = 'shockwave';
+                        wave.style.borderColor = i === 0 ? 'rgba(255, 215, 0, 0.9)' : 
+                                               i === 1 ? 'rgba(64, 176, 224, 0.7)' : 'rgba(218, 165, 32, 0.5)';
+                        stage.appendChild(wave);
+                        wave.classList.add('active');
+                        
+                        setTimeout(() => {
+                            wave.remove();
+                        }, 1200);
+                    }, i * 200);
+                }
+            }
+            
+            // ===== 创建环绕粒子轨道 =====
+            function createOrbitParticles() {
+                for (let i = 0; i < 3; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = `orbit-particle orbit${i + 1}`;
+                    particle.style.top = '50%';
+                    particle.style.left = '50%';
+                    stage.appendChild(particle);
+                }
+                
+                setTimeout(() => {
+                    document.querySelectorAll('.orbit-particle').forEach(p => p.remove());
+                }, 4000);
+            }
+            
+            // ===== 跳转到首页 =====
+            window.redirectToHome = function() {
+                window.location.href = '1.shouye.html';
+            };
+            
+            // ===== 窗口大小改变处理 =====
+            function handleResize() {
+                if (!isAnimating) {
+                    resetToInitial();
+                }
+            }
+            
+            // ===== 初始化 =====
+            function init() {
+                // 初始化定时器数组
+                window.animationTimeouts = [];
+                
+                // 预加载图片
+                preloadImages();
+                
+                // 初始重置
+                resetToInitial();
+                
+                // 防抖的窗口大小监听
+                let resizeTimer;
+                window.addEventListener('resize', function() {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(handleResize, 150);
+                });
+                
+                // 触摸设备优化
+                if ('ontouchstart' in window) {
+                    document.documentElement.classList.add('touch-device');
+                }
+                
+                console.log('相遇动画页面已加载，等待图片加载...');
+            }
+            
+            init();
+        });
+    </script>
+</body>
+</html>

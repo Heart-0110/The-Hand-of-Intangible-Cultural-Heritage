@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>首页 - 非遗手·传承</title>
+    <meta name="description" content="非遗手 - 传承千年手工艺，创新数字文化体验。AR陶艺创作、VR非遗工坊、3D手工艺库。">
+    
+    <!-- 字体预连接 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 公共样式 -->
+    <link rel="stylesheet" href="css/components.css">
+    
+    <style>
+        /* 全局3D透视 */
+        body {
+            perspective: 1500px;
+            transform-style: preserve-3d;
+            overflow-x: hidden;
+        }
+        
+        /* 页面容器 */
+        main {
+            transform-style: preserve-3d;
+        }
+        
+        /* 动态背景网格 */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background-image: 
+                linear-gradient(rgba(64, 176, 224, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(64, 176, 224, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        
+        @keyframes gridMove {
+            0% {
+                transform: perspective(1000px) rotateX(60deg) translateY(0);
+            }
+            100% {
+                transform: perspective(1000px) rotateX(60deg) translateY(60px);
+            }
+        }
+        
+        /* 鼠标跟随特效 */
+        /* 手工艺手势鼠标跟随器 */
+        .mouse-follower {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s ease-out;
+        }
+        
+        .mouse-follower svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+        
+        /* 手势动画 - 放松状态 */
+        .hand-relax .finger {
+            transform: rotate(0deg);
+        }
+        
+        /* 手势动画 - 悬停状态（准备抓取） */
+        .mouse-follower.hovering {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        .hand-hover .finger-1 {
+            transform: rotate(-15deg);
+        }
+        
+        .hand-hover .finger-2 {
+            transform: rotate(-10deg);
+        }
+        
+        .hand-hover .finger-3 {
+            transform: rotate(-5deg);
+        }
+        
+        .hand-hover .finger-4 {
+            transform: rotate(-8deg);
+        }
+        
+        .hand-hover .finger-5 {
+            transform: rotate(-12deg);
+        }
+        
+        /* 手势动画 - 点击状态（抓取） */
+        .mouse-follower.clicking {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+        
+        .hand-click .finger-1,
+        .hand-click .finger-2,
+        .hand-click .finger-3,
+        .hand-click .finger-4,
+        .hand-click .finger-5 {
+            transform: rotate(-30deg);
+        }
+        
+        /* 手势动画 - 拖动状态 */
+        .mouse-follower.dragging {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+        
+        /* 手势阴影效果 */
+        .mouse-follower::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            filter: blur(4px);
+        }
+        
+        /* 滚动进度条 */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #40B0E0, #daa520);
+            z-index: 9998;
+            transition: width 0.1s ease;
+            box-shadow: 0 0 10px rgba(64, 176, 224, 0.5);
+        }
+        
+        /* 浮动动画 */
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        
+        /* 首页特有样式 */
+        .hero-section {
+            min-height: 75vh;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(64, 176, 224, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 5%;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        /* 装饰元素 */
+        .hero-decoration {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: floatOrb 10s ease-in-out infinite;
+        }
+        
+        @keyframes floatOrb {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translate(-30px, 30px) scale(1.1);
+                opacity: 0.8;
+            }
+        }
+        
+        /* 粒子背景 */
+        .hero-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .hero-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: particleFloat 10s linear infinite;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(80vh) translateX(20px) scale(1);
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) translateX(-20px) scale(0.5);
+                opacity: 0;
+            }
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-text {
+            animation: slideInLeft 1s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            padding: 0.35rem 0.9rem;
+            background: rgba(64, 176, 224, 0.15);
+            border: 1px solid rgba(64, 176, 224, 0.3);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            margin-bottom: 1.2rem;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(64, 176, 224, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px 5px rgba(64, 176, 224, 0.2);
+            }
+        }
+        
+        .hero-title {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #40B0E0, #88D8F0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            line-height: 1.15;
+            text-shadow: 0 0 30px rgba(64, 176, 224, 0.3);
+            animation: titleShimmer 4s ease-in-out infinite;
+            background-size: 200% 200%;
+        }
+        
+        @keyframes titleShimmer {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            max-width: 450px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.8rem;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #40B0E0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        /* 英雄区域图片 */
+        .hero-visual {
+            animation: slideInRight 1s ease-out 0.2s both;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .hero-image-wrapper {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            animation: imageFloat 6s ease-in-out infinite;
+        }
+        
+        @keyframes imageFloat {
+            0%, 100% {
+                transform: translateY(0) rotateY(0);
+            }
+            50% {
+                transform: translateY(-15px) rotateY(5deg);
+            }
+        }
+        
+        .hero-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+        
+        .image-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(64, 176, 224, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        
+        .hero-btn {
+            display: inline-block;
+            padding: 0.65rem 1.8rem;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .hero-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), #2e8ab8);
+            color: white;
+            border: 1.5px solid transparent;
+            box-shadow: 0 4px 12px rgba(64, 176, 224, 0.3);
+        }
+        
+        .hero-btn.primary:hover {
+            transform: translateY(-3px) translateZ(8px) scale(1.03);
+            box-shadow: 
+                0 15px 30px rgba(64, 176, 224, 0.4),
+                0 0 40px rgba(64, 176, 224, 0.2);
+        }
+        
+        .hero-btn.secondary {
+            background: transparent;
+            border: 1.5px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .hero-btn.secondary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-5px) translateZ(10px) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(64, 176, 224, 0.4),
+                0 0 50px rgba(64, 176, 224, 0.2);
+        }
+        
+        .hero-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .hero-btn:hover::before {
+            left: 100%;
+        }
+        
+        /* 双栏图片展示区 */
+        .gallery-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #0f172a 0%, #1a1a2e 100%);
+        }
+        
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.2rem;
+        }
+        
+        .gallery-card {
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .gallery-card:hover {
+            transform: translateY(-8px);
+        }
+        
+        .gallery-card.large-card {
+            grid-row: span 2;
+            min-height: 400px;
+        }
+        
+        .gallery-card.small-card {
+            min-height: 190px;
+        }
+        
+        .card-image {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+        
+        .gallery-card:hover .card-image img {
+            transform: scale(1.08);
+        }
+        
+        .card-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.4s ease;
+        }
+        
+        .gallery-card:hover .card-overlay {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .overlay-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+        }
+        
+        .overlay-desc {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.5;
+        }
+        
+        .overlay-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 0.3s ease;
+        }
+        
+        .overlay-link:hover {
+            color: #88D8F0;
+        }
+        
+        /* 核心特性区域 */
+        .features-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%);
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.6rem;
+        }
+        
+        .section-subtitle {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        
+        .features-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px) rotateX(3deg);
+            background: rgba(64, 176, 224, 0.08);
+            border-color: rgba(64, 176, 224, 0.3);
+            box-shadow: 
+                0 18px 35px rgba(64, 176, 224, 0.15),
+                0 0 30px rgba(64, 176, 224, 0.1);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            background: rgba(64, 176, 224, 0.1);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.15) rotateZ(8deg);
+            background: rgba(64, 176, 224, 0.2);
+        }
+        
+        .feature-card h3 {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.8rem;
+        }
+        
+        .feature-card p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: color 0.3s ease;
+        }
+        
+        .feature-card a:hover {
+            color: #88D8F0;
+        }
+        
+        .hero-btn.outline {
+            background: transparent;
+            border-color: var(--primary-color);
+        }
+        
+        .hero-btn.outline:hover {
+            background: rgba(64, 176, 224, 0.15);
+            box-shadow: 
+                0 15px 35px rgba(64, 176, 224, 0.3),
+                0 0 40px rgba(64, 176, 224, 0.2);
+        }
+        
+        /* 特性卡片网格 - 响应式 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: clamp(1.5rem, 3vw, 2rem);
+            padding: 4rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            transform-style: preserve-3d;
+            perspective: 2000px;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(15px);
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-15px) rotateX(5deg) rotateY(-5deg) translateZ(30px);
+            border-color: var(--primary-color);
+            box-shadow: 
+                0 25px 50px rgba(64, 176, 224, 0.3),
+                0 0 60px rgba(218, 165, 32, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-icon {
+            font-size: clamp(2.5rem, 5vw, 3rem);
+            margin-bottom: 1rem;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 5px 15px rgba(218, 165, 32, 0.3));
+            animation: iconPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.3) rotateZ(10deg);
+            filter: drop-shadow(0 10px 25px rgba(218, 165, 32, 0.5));
+        }
+        
+        .feature-card h3 {
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            color: var(--text-primary);
+            margin-bottom: 0.8rem;
+            transition: color 0.3s ease;
+        }
+        
+        .feature-card:hover h3 {
+            color: var(--primary-color);
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            transition: color 0.3s ease;
+        }
+        
+        .feature-card:hover p {
+            color: var(--text-primary);
+        }
+        
+        .feature-card a {
+            display: inline-block;
+            margin-top: 1.2rem;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card a:hover {
+            color: var(--accent-color);
+            transform: translateX(5px);
+        }
+        
+        /* 数据图表展示区 */
+        .data-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #0f172a 0%, #1a1a2e 50%, #0f172a 100%);
+        }
+        
+        .data-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .data-card {
+            background: rgba(64, 176, 224, 0.05);
+            border: 1px solid rgba(64, 176, 224, 0.2);
+            border-radius: 12px;
+            padding: 1.2rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .data-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(64, 176, 224, 0.4);
+            box-shadow: 0 15px 35px rgba(64, 176, 224, 0.15);
+        }
+        
+        .chart-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(64, 176, 224, 0.2);
+        }
+        
+        .chart-title {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        
+        .mini-chart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .line-chart, .pie-chart {
+            max-width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(64, 176, 224, 0.3));
+        }
+        
+        .chart-legend, .pie-legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.8rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        /* 效率对比表格区 */
+        .comparison-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%);
+        }
+        
+        .comparison-table {
+            max-width: 900px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid rgba(64, 176, 224, 0.2);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .comparison-table th, .comparison-table td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .comparison-table th {
+            background: rgba(64, 176, 224, 0.1);
+            color: #40B0E0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .comparison-table td {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(64, 176, 224, 0.05);
+        }
+        
+        .comparison-table .highlight {
+            color: #daa520;
+            font-weight: 700;
+        }
+        
+        /* 工艺流程图 */
+        .process-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #0f172a 0%, #1a1a2e 100%);
+        }
+        
+        .process-flow {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+        
+        .process-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 150px;
+        }
+        
+        .step-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(64, 176, 224, 0.2), rgba(218, 165, 32, 0.2));
+            border: 2px solid rgba(64, 176, 224, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.6rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(64, 176, 224, 0.3);
+        }
+        
+        .process-step:hover .step-circle {
+            transform: scale(1.1);
+            border-color: #daa520;
+            box-shadow: 0 0 30px rgba(218, 165, 32, 0.4);
+        }
+        
+        .step-icon {
+            font-size: 1.8rem;
+        }
+        
+        .step-label {
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+        
+        .step-desc {
+            font-size: 0.75rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+        
+        .flow-arrow {
+            margin: 0 0.5rem;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        
+        .process-step:hover + .flow-arrow {
+            opacity: 1;
+        }
+        
+        /* 应用场景分布 */
+        .scenes-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%);
+        }
+        
+        .scenes-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .donut-chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .donut-chart {
+            width: 200px;
+            height: 200px;
+            filter: drop-shadow(0 0 20px rgba(64, 176, 224, 0.3));
+        }
+        
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+        }
+        
+        /* 传承历程时间轴 */
+        .timeline-section {
+            padding: 2.5rem 5%;
+            background: linear-gradient(180deg, #0f172a 0%, #1a1a2e 100%);
+        }
+        
+        .timeline {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            position: relative;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #40B0E0, #daa520, transparent);
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+        
+        .timeline-item {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+        
+        .timeline-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #40B0E0;
+            border: 3px solid #0f172a;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0 15px rgba(64, 176, 224, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item:hover .timeline-dot {
+            transform: scale(1.3);
+            background: #daa520;
+            box-shadow: 0 0 25px rgba(218, 165, 32, 0.6);
+        }
+        
+        .timeline-content {
+            background: rgba(64, 176, 224, 0.05);
+            border: 1px solid rgba(64, 176, 224, 0.2);
+            border-radius: 12px;
+            padding: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item:hover .timeline-content {
+            border-color: rgba(218, 165, 32, 0.4);
+            transform: translateY(-5px);
+        }
+        
+        .timeline-icon {
+            font-size: 2rem;
+            margin-bottom: 0.6rem;
+        }
+        
+        .timeline-content h3 {
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .timeline-content p {
+            color: #64748b;
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+        
+        /* 最新动态 */
+        .news-section {
+            padding: 4rem 5%;
+            background: linear-gradient(135deg, #0a0f1a 0%, #141c2c 100%);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        /* 新闻区域背景装饰 */
+        .news-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: newsBgFloat 10s ease-in-out infinite;
+        }
+        
+        @keyframes newsBgFloat {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(-30px, 20px) scale(1.1);
+            }
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: clamp(1.8rem, 5vw, 2.2rem);
+            color: var(--text-primary);
+            margin-bottom: 3rem;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #40B0E0, #daa520);
+            border-radius: 2px;
+        }
+        
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+        }
+        
+        .news-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+        
+        .news-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(64, 176, 224, 0.1) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .news-card:hover::before {
+            opacity: 1;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-10px) rotateX(3deg) translateZ(20px);
+            box-shadow: 
+                0 20px 40px rgba(64, 176, 224, 0.3),
+                0 0 50px rgba(218, 165, 32, 0.2);
+            border-color: var(--primary-color);
+        }
+        
+        .news-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .news-card:hover .news-image {
+            transform: scale(1.1);
+        }
+        
+        .news-content {
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .news-date {
+            color: var(--yan-cai-gold);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            background: rgba(218, 165, 32, 0.1);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .news-card:hover .news-date {
+            background: rgba(218, 165, 32, 0.2);
+        }
+        
+        .news-title {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+            transition: color 0.3s ease;
+            line-height: 1.4;
+        }
+        
+        .news-card:hover .news-title {
+            color: var(--primary-color);
+        }
+        
+        .news-excerpt {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            transition: color 0.3s ease;
+        }
+        
+        .news-card:hover .news-excerpt {
+            color: var(--text-primary);
+        }
+        
+        /* CTA区域 */
+        .cta-section {
+            padding: 5rem 5%;
+            text-align: center;
+            background: linear-gradient(135deg, #1a3657 0%, #2a4a5a 100%);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        .cta-title {
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            color: white;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 0 30px rgba(64, 176, 224, 0.5);
+            animation: ctaTitleFloat 4s ease-in-out infinite;
+        }
+        
+        @keyframes ctaTitleFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .cta-text {
+            color: rgba(255,255,255,0.8);
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* 新闻卡片图片占位 */
+        .news-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(64,176,224,0.1) 0%, rgba(218,165,32,0.1) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            transition: all 0.5s ease;
+        }
+        
+        /* 英雄区域 */
+        #zhubanbg{
+            background-image: url(img/taoyibg.jpg);
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 英雄区域光效动画 */
+        #zhubanbg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(64, 176, 224, 0.15), 
+                rgba(218, 165, 32, 0.1),
+                transparent);
+            animation: lightSweep 6s ease-in-out infinite;
+        }
+        
+        @keyframes lightSweep {
+            0% { left: -100%; }
+            50%, 100% { left: 150%; }
+        }
+        
+        /* 英雄内容入场动画 */
+        .hero-content {
+            animation: slideUpFadeIn 1s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        @keyframes slideUpFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 特性卡片悬停动画 */
+        .feature-card {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(64, 176, 224, 0.05), 
+                transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 20px 40px rgba(64, 176, 224, 0.2),
+                0 0 60px rgba(218, 165, 32, 0.1);
+        }
+        
+        .feature-icon {
+            transition: transform 0.4s ease, filter 0.4s ease;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2) rotate(5deg);
+            filter: drop-shadow(0 0 15px rgba(218, 165, 32, 0.5));
+        }
+        
+        /* 新闻卡片动画 */
+        .news-card {
+            transition: all 0.4s ease;
+            position: relative;
+        }
+        
+        .news-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #40B0E0, #daa520);
+            transition: width 0.4s ease;
+        }
+        
+        .news-card:hover::after {
+            width: 100%;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .news-card:hover .news-placeholder {
+            transform: scale(1.1);
+            filter: brightness(1.1);
+        }
+        
+        /* 文字渐变动画 */
+        .section-title {
+            position: relative;
+            background: linear-gradient(135deg, #40B0E0, #daa520);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: shimmer 3s ease-in-out infinite;
+            background-size: 200% 200%;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        /* CTA区域波纹效果 */
+        .cta-section {
+            padding: 3rem 5%;
+            text-align: center;
+            background: linear-gradient(135deg, #1a3657 0%, #2a4a5a 100%);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        
+        .cta-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(64, 176, 224, 0.2) 0%, transparent 70%);
+            animation: rippleExpand 4s ease-out infinite;
+            pointer-events: none;
+        }
+        
+        .cta-ripple:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: 50%;
+            left: 20%;
+            animation-delay: 0s;
+        }
+        
+        .cta-ripple:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            top: 30%;
+            right: 25%;
+            animation-delay: 1s;
+        }
+        
+        .cta-ripple:nth-child(3) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 50%;
+            animation-delay: 2s;
+        }
+        
+        @keyframes rippleExpand {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+        
+        /* 导航栏滚动效果 */
+        .main-navigation.scrolled {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 平滑滚动到锚点 */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* 元素进入视口动画 */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 按钮脉冲效果 */
+        .hero-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        
+        .hero-btn:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 公共导航栏（动态加载）===== -->
+    <div id="header-container">
+        <!-- 备用：如果组件加载失败，显示默认内容 -->
+        <header class="site-header">
+            <div class="header-top">
+                <div class="site-title">
+                    <h1>非遗手</h1>
+                    <span class="tagline">传统手工艺 · 数字创新 · 文化传承</span>
+                </div>
+                <div class="search-container">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="search" class="search-input" placeholder="搜索非遗手工艺项目..." aria-label="搜索">
+                </div>
+            </div>
+        </header>
+        
+        <!-- 动态背景网格 -->
+        <div class="bg-grid"></div>
+
+        <nav class="main-navigation">
+            <div class="nav-container">
+                <div class="logo-container">
+                    <a href="1.shouye.html" class="logo">
+                        <img src="img/shuimo.jpg" alt="非遗手" width="40" height="40" loading="eager">
+                        <span class="logo-text">非遗手</span>
+                    </a>
+                </div>
+                <ul class="main-nav" id="main-nav">
+                    <li><a href="1.shouye.html">首页</a></li>
+                    <li><a href="2.feiyiminglu.html">非遗名录</a></li>
+                    <li><a href="3.shuzitiyan.html">数字体验</a></li>
+                    <li><a href="4.gongyijiaoxue.html">工艺教学</a></li>
+                    <li><a href="5.wenhuagushi.html">文化故事</a></li>
+                </ul>
+                <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="切换菜单">
+                    <span class="hamburger"></span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ===== 首页内容 ===== -->
+    <main>
+        <!-- 英雄大图海报区 -->
+        <section class="hero-section" id="zhubanbg">
+            <!-- 粒子背景 -->
+            <div class="hero-particles" id="heroParticles"></div>
+            
+            <!-- 装饰元素 -->
+            <div class="hero-decoration"></div>
+            
+            <div class="hero-container">
+                <div class="hero-text">
+                    <div class="hero-badge">非遗手 · 触控传承</div>
+                    <h1 class="hero-title">非遗之手 · 触控传承</h1>
+                    <p class="hero-subtitle">基于算法记忆模型的非遗教学传承项目</p>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">85%</span>
+                            <span class="stat-label">效率提升</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">99%</span>
+                            <span class="stat-label">精度控制</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">90%</span>
+                            <span class="stat-label">时间缩短</span>
+                        </div>
+                    </div>
+                    <div class="hero-buttons">
+                        <a href="3.shuzitiyan.html" class="hero-btn primary">即刻体验</a>
+                        <a href="5.wenhuagushi.html" class="hero-btn secondary">了解更多</a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-image-wrapper">
+                        <img src="img/hero-main.jpg" alt="非遗手工艺品" class="hero-image">
+                        <div class="image-glow"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 双栏图片展示区 -->
+        <section class="gallery-section">
+            <div class="gallery-container">
+                <div class="gallery-card large-card">
+                    <div class="card-image">
+                        <img src="img/craft-showcase-1.jpg" alt="传统工艺展示">
+                        <div class="card-overlay">
+                            <h3 class="overlay-title">VR非遗工坊</h3>
+                            <p class="overlay-desc">沉浸式探访景德镇古窑，360度观看非遗传承人现场制陶</p>
+                            <a href="3.shuzitiyan.html" class="overlay-link">立即体验 →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="gallery-card small-card">
+                    <div class="card-image">
+                        <img src="img/craft-showcase-2.jpg" alt="AR陶艺创作">
+                        <div class="card-overlay">
+                            <h3 class="overlay-title">AR陶艺创作</h3>
+                            <a href="3.shuzitiyan.html" class="overlay-link">了解更多 →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="gallery-card small-card">
+                    <div class="card-image">
+                        <img src="img/craft-showcase-3.jpg" alt="3D手工艺库">
+                        <div class="card-overlay">
+                            <h3 class="overlay-title">3D手工艺库</h3>
+                            <a href="3.shuzitiyan.html" class="overlay-link">浏览库藏 →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据图表展示区 -->
+        <section class="data-section">
+            <div class="section-header">
+                <h2 class="section-title">📊 机械学习记忆特征</h2>
+                <p class="section-subtitle">匠人肌肉记忆与机械臂动作对比分析</p>
+            </div>
+            <div class="data-container">
+                <div class="data-card">
+                    <div class="chart-header">
+                        <span class="chart-title">匠人肌肉记忆与机械臂动作对比</span>
+                    </div>
+                    <div class="mini-chart">
+                        <svg viewBox="0 0 200 80" class="line-chart">
+                            <defs>
+                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#40B0E0;stop-opacity:0.3"/>
+                                    <stop offset="100%" style="stop-color:#40B0E0;stop-opacity:0"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M 10 60 Q 30 45, 50 50 T 90 35 T 130 40 T 170 30 T 190 25" 
+                                  fill="none" stroke="#40B0E0" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M 10 55 Q 30 50, 50 48 T 90 42 T 130 38 T 170 32 T 190 28" 
+                                  fill="none" stroke="#daa520" stroke-width="2" stroke-dasharray="4,2"/>
+                            <circle cx="10" cy="60" r="3" fill="#40B0E0"/>
+                            <circle cx="190" cy="25" r="3" fill="#40B0E0"/>
+                            <circle cx="10" cy="55" r="3" fill="#daa520"/>
+                            <circle cx="190" cy="28" r="3" fill="#daa520"/>
+                        </svg>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background:#40B0E0"></span> 匠人动作</span>
+                            <span class="legend-item"><span class="legend-dot" style="background:#daa520"></span> 机械臂动作</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <div class="chart-header">
+                        <span class="chart-title">肌肉记忆数据分布</span>
+                    </div>
+                    <div class="mini-chart">
+                        <svg viewBox="0 0 150 100" class="pie-chart">
+                            <circle cx="75" cy="55" r="40" fill="none" stroke="#40B0E0" stroke-width="12" stroke-dasharray="151 94"/>
+                            <circle cx="75" cy="55" r="40" fill="none" stroke="#2e8ab8" stroke-width="12" stroke-dasharray="94 245"/>
+                            <circle cx="75" cy="55" r="40" fill="none" stroke="#1a5a8a" stroke-width="12" stroke-dasharray="63 286" stroke-dashoffset="-245"/>
+                            <circle cx="75" cy="55" r="25" fill="#0f172a"/>
+                            <text x="75" y="55" text-anchor="middle" fill="#94a3b8" font-size="12">62%</text>
+                        </svg>
+                        <div class="pie-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background:#40B0E0"></span> 精准动作</span>
+                            <span class="legend-item"><span class="legend-dot" style="background:#2e8ab8"></span> 学习阶段</span>
+                            <span class="legend-item"><span class="legend-dot" style="background:#1a5a8a"></span> 优化调整</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 效率对比表格区 -->
+        <section class="comparison-section">
+            <div class="section-header">
+                <h2 class="section-title">⚡ 效率对比</h2>
+                <p class="section-subtitle">瓷器制作工艺对比分析</p>
+            </div>
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>工艺环节</th>
+                            <th>传统方式</th>
+                            <th>机械臂辅助</th>
+                            <th>效率提升</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>拉坯成型</td>
+                            <td>2-4小时/件</td>
+                            <td>20-30分钟/件</td>
+                            <td class="highlight">85%</td>
+                        </tr>
+                        <tr>
+                            <td>釉料绘制</td>
+                            <td>依赖手感经验</td>
+                            <td>数字化轨迹控制</td>
+                            <td class="highlight">99%精度</td>
+                        </tr>
+                        <tr>
+                            <td>烧制合格率</td>
+                            <td>70-85%</td>
+                            <td>95-98%</td>
+                            <td class="highlight">15%↑</td>
+                        </tr>
+                        <tr>
+                            <td>传承教学</td>
+                            <td>3-5年出师</td>
+                            <td>3-6个月掌握</td>
+                            <td class="highlight">90%时间</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 工艺流程图 -->
+        <section class="process-section">
+            <div class="section-header">
+                <h2 class="section-title">🏺 非遗陶瓷制作</h2>
+                <p class="section-subtitle">传统工艺与数字技术的完美融合</p>
+            </div>
+            <div class="process-flow">
+                <div class="process-step">
+                    <div class="step-circle">
+                        <span class="step-icon">✋</span>
+                    </div>
+                    <div class="step-label">揉泥</div>
+                    <p class="step-desc">去除泥料气泡，反复揉压锤炼，使泥质细腻均匀</p>
+                </div>
+                <div class="flow-arrow">
+                    <svg viewBox="0 0 60 20" fill="none">
+                        <path d="M 5 10 L 55 10" stroke="url(#arrowGradient)" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M 48 5 L 55 10 L 48 15" fill="url(#arrowGradient)"/>
+                        <defs>
+                            <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#40B0E0"/>
+                                <stop offset="100%" style="stop-color:#daa520"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="process-step">
+                    <div class="step-circle">
+                        <span class="step-icon">🌀</span>
+                    </div>
+                    <div class="step-label">拉坯</div>
+                    <p class="step-desc">借助转盘旋力，双手提拉泥料，塑出器物雏形</p>
+                </div>
+                <div class="flow-arrow">
+                    <svg viewBox="0 0 60 20" fill="none">
+                        <path d="M 5 10 L 55 10" stroke="url(#arrowGradient2)" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M 48 5 L 55 10 L 48 15" fill="url(#arrowGradient2)"/>
+                        <defs>
+                            <linearGradient id="arrowGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#40B0E0"/>
+                                <stop offset="100%" style="stop-color:#daa520"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="process-step">
+                    <div class="step-circle">
+                        <span class="step-icon">🔧</span>
+                    </div>
+                    <div class="step-label">利坯</div>
+                    <p class="step-desc">精修素坯轮廓，削薄器壁，校准厚度</p>
+                </div>
+                <div class="flow-arrow">
+                    <svg viewBox="0 0 60 20" fill="none">
+                        <path d="M 5 10 L 55 10" stroke="url(#arrowGradient3)" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M 48 5 L 55 10 L 48 15" fill="url(#arrowGradient3)"/>
+                        <defs>
+                            <linearGradient id="arrowGradient3" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#40B0E0"/>
+                                <stop offset="100%" style="stop-color:#daa520"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="process-step">
+                    <div class="step-circle">
+                        <span class="step-icon">🎨</span>
+                    </div>
+                    <div class="step-label">施釉</div>
+                    <p class="step-desc">采用淋、蘸、喷等技法，为素坯均匀覆釉</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 应用场景分布 -->
+        <section class="scenes-section">
+            <div class="section-header">
+                <h2 class="section-title">🌍 应用场景分布</h2>
+                <p class="section-subtitle">各应用场景使用占比</p>
+            </div>
+            <div class="scenes-container">
+                <div class="donut-chart-wrapper">
+                    <svg viewBox="0 0 200 200" class="donut-chart">
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#40B0E0" stroke-width="25" stroke-dasharray="132 308" stroke-dashoffset="0"/>
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#3BA3D0" stroke-width="25" stroke-dasharray="88 352" stroke-dashoffset="-132"/>
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#3693C0" stroke-width="25" stroke-dasharray="66 374" stroke-dashoffset="-220"/>
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#2E8AB8" stroke-width="25" stroke-dasharray="44 396" stroke-dashoffset="-286"/>
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#267AA0" stroke-width="25" stroke-dasharray="33 407" stroke-dashoffset="-330"/>
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="#1E6A88" stroke-width="25" stroke-dasharray="22 418" stroke-dashoffset="-363"/>
+                        <circle cx="100" cy="100" r="45" fill="#0f172a"/>
+                        <text x="100" y="95" text-anchor="middle" fill="#94a3b8" font-size="10">总计</text>
+                        <text x="100" y="115" text-anchor="middle" fill="#40B0E0" font-size="20" font-weight="700">100%</text>
+                    </svg>
+                    <div class="donut-legend">
+                        <div class="legend-row"><span class="legend-color" style="background:#40B0E0"></span>职业技能实训 25%</div>
+                        <div class="legend-row"><span class="legend-color" style="background:#3BA3D0"></span>体育教学 17%</div>
+                        <div class="legend-row"><span class="legend-color" style="background:#3693C0"></span>康复训练 13%</div>
+                        <div class="legend-row"><span class="legend-color" style="background:#2E8AB8"></span>舞蹈形体 8%</div>
+                        <div class="legend-row"><span class="legend-color" style="background:#267AA0"></span>工业操作 6%</div>
+                        <div class="legend-row"><span class="legend-color" style="background:#1E6A88"></span>礼仪教学 4%</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 传承历程时间轴 -->
+        <section class="timeline-section">
+            <div class="section-header">
+                <h2 class="section-title">⏳ 肌肉记忆数字化采集流程</h2>
+                <p class="section-subtitle">从古技起源到未来传承</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-icon">🧠</div>
+                        <h3>脑电信号采集</h3>
+                        <p>表面EMG传感器 | 采样率: 2kHz | 精度: 8-bit</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-icon">💪</div>
+                        <h3>肌电信号捕捉</h3>
+                        <p>惯性追踪系统 | 角度同步 | 分辨率: 0.1°</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-icon">📈</div>
+                        <h3>运动轨迹追踪</h3>
+                        <p>光学动作捕捉 | 精度: 0.1mm | 帧率: 240Hz</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-icon">🤖</div>
+                        <h3>机械臂学习</h3>
+                        <p>深度学习算法 | 动作优化 | 精度: 0.03mm</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 核心特性 -->
+        <section class="features-section">
+            <div class="section-header">
+                <h2 class="section-title">✨ 核心体验</h2>
+                <p class="section-subtitle">探索非遗手工艺的数字新世界</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🏺</div>
+                    <h3>AR陶艺创作</h3>
+                    <p>手机摄像头实时模拟拉坯、塑形、上釉，体验从泥土到器物的完整制陶流程</p>
+                    <a href="3.shuzitiyan.html">了解更多 →</a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🥽</div>
+                    <h3>VR非遗工坊</h3>
+                    <p>沉浸式探访景德镇古窑、宜兴紫砂作坊，360度观看非遗传承人现场制作</p>
+                    <a href="3.shuzitiyan.html">了解更多 →</a>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🖐️</div>
+                    <h3>3D手工艺库</h3>
+                    <p>48种传统手工艺高精度扫描，360度旋转观察拉坯、雕刻、编织等技法细节</p>
+                    <a href="3.shuzitiyan.html">了解更多 →</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA区域 -->
+        <section class="cta-section">
+            <!-- 波纹效果层 -->
+            <div class="cta-ripple"></div>
+            <div class="cta-ripple"></div>
+            <div class="cta-ripple"></div>
+            
+            <h2 class="cta-title">开启您的非遗手工艺之旅</h2>
+            <p class="cta-text">免费注册账号，获取完整教程、高清图库和社区交流权限</p>
+            <div class="cta-buttons">
+                <a href="#" class="hero-btn primary">免费注册</a>
+                <a href="#" class="hero-btn secondary">登录</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== 公共页脚（动态加载）===== -->
+    <div id="footer-container">
+        <!-- 备用：如果组件加载失败，显示默认内容 -->
+        <footer role="contentinfo">
+            <div class="footer-container">
+                <div class="footer-main">
+                    <div class="footer-col">
+                        <div class="footer-brand">
+                            <img src="img/logo-white.svg" alt="非遗手" width="140" height="40" loading="lazy">
+                            <p>传承千年手工艺 · 创新数字文化体验</p>
+                        </div>
+                        <div class="social-links">
+                            <a href="#" aria-label="微博">📱</a>
+                            <a href="#" aria-label="微信">💬</a>
+                            <a href="#" aria-label="B站">▶️</a>
+                        </div>
+                    </div>
+                    <div class="footer-col">
+                        <h3>快速链接</h3>
+                        <ul>
+                            <li><a href="1.shouye.html">首页</a></li>
+                            <li><a href="2.feiyiminglu.html">非遗名录</a></li>
+                            <li><a href="3.shuzitiyan.html">数字体验</a></li>
+                            <li><a href="4.gongyijiaoxue.html">工艺教学</a></li>
+                            <li><a href="5.wenhuagushi.html">文化故事</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h3>联系我们</h3>
+                        <ul>
+                            <li><span>📍</span> 北京东城区美术馆后街23号</li>
+                            <li><span>📞</span> 010-8888 9999</li>
+                            <li><span>✉️</span> info@feiyi-hand.com</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2018-<span id="current-year">2025</span> 非遗手. 保留所有权利</p>
+                    <div class="legal-links">
+                        <a href="#">隐私政策</a><span>|</span>
+                        <a href="#">使用条款</a><span>|</span>
+                        <a href="#">网站地图</a>
+                    </div>
+                </div>
+            </div>
+            <button class="back-to-top" aria-label="回到顶部">↑</button>
+        </footer>
+    </div>
+
+    <!-- 公共脚本 -->
+    <script src="js/components.js"></script>
+    
+    <!-- 首页动画脚本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 生成英雄区域粒子
+            function createHeroParticles() {
+                const container = document.getElementById('heroParticles');
+                if (!container) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'hero-particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 10 + 's';
+                    particle.style.animationDuration = (8 + Math.random() * 4) + 's';
+                    container.appendChild(particle);
+                }
+            }
+            
+            // 导航栏滚动效果
+            const nav = document.querySelector('.main-navigation');
+            
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 50) {
+                    nav.classList.add('scrolled');
+                } else {
+                    nav.classList.remove('scrolled');
+                }
+            });
+            
+            // 滚动动画观察器
+            const observer = new IntersectionObserver(
+                function(entries) {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                },
+                {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                }
+            );
+            
+            // 观察所有需要动画的元素
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // 3D卡片倾斜效果
+            function init3DCards() {
+                document.querySelectorAll('.feature-card, .news-card').forEach(card => {
+                    card.addEventListener('mousemove', function(e) {
+                        const rect = this.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateX = (y - centerY) / 10;
+                        const rotateY = (centerX - x) / 10;
+                        
+                        this.style.transform = `translateY(-15px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`;
+                    });
+                    
+                    card.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translateY(0) rotateX(0) rotateY(0) translateZ(0)';
+                    });
+                });
+            }
+            
+            // 按钮点击涟漪效果
+            document.querySelectorAll('.hero-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.3);
+                        left: ${x}px;
+                        top: ${y}px;
+                        pointer-events: none;
+                        animation: ripple 0.6s ease-out forwards;
+                    `;
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
+            
+            // 页面视差效果
+            function initParallax() {
+                window.addEventListener('scroll', function() {
+                    const scrolled = window.scrollY;
+                    
+                    document.querySelectorAll('.feature-card').forEach((card, index) => {
+                        const speed = 0.05 * (index % 3 + 1);
+                        card.style.transform = `translateY(${scrolled * speed}px)`;
+                    });
+                });
+            }
+            
+            // 平滑滚动到锚点
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // 添加涟漪动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 鼠标跟随特效
+            function initMouseFollower() {
+                const follower = document.createElement('div');
+                follower.className = 'mouse-follower';
+                
+                // 创建SVG手势图形
+                follower.innerHTML = `
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 手掌 -->
+                        <ellipse cx="50" cy="70" rx="25" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        
+                        <!-- 拇指 -->
+                        <g class="finger finger-1" style="transform-origin: 55px 65px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="35" cy="55" rx="8" ry="15" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1" transform="rotate(-20 35 55)"/>
+                        </g>
+                        
+                        <!-- 食指 -->
+                        <g class="finger finger-2" style="transform-origin: 45px 62px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="45" cy="35" rx="7" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- 中指 -->
+                        <g class="finger finger-3" style="transform-origin: 52px 60px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="52" cy="30" rx="6" ry="22" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- 无名指 -->
+                        <g class="finger finger-4" style="transform-origin: 59px 60px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="59" cy="32" rx="6" ry="20" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- 小指 -->
+                        <g class="finger finger-5" style="transform-origin: 66px 62px; transition: transform 0.2s ease-out;">
+                            <ellipse cx="66" cy="38" rx="5" ry="16" fill="#f5e6d3" stroke="#d4c4a8" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- 掌心装饰 -->
+                        <path d="M45 68 Q50 60 55 68" fill="none" stroke="#e8d5bc" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                `;
+                
+                document.body.appendChild(follower);
+                
+                let mouseX = 0, mouseY = 0;
+                let followerX = 0, followerY = 0;
+                let isHovering = false;
+                let isClicking = false;
+                let isDragging = false;
+                
+                // 鼠标移动跟踪
+                window.addEventListener('mousemove', function(e) {
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    
+                    // 检测是否悬停在可交互元素上
+                    const target = e.target;
+                    const isInteractive = target.closest('button, a, [role="button"], .card, .hero-btn, .nav-link');
+                    
+                    if (isInteractive && !isHovering) {
+                        isHovering = true;
+                        follower.classList.add('hovering');
+                        follower.querySelector('svg g:nth-child(2)').classList.add('hand-hover');
+                    } else if (!isInteractive && isHovering) {
+                        isHovering = false;
+                        follower.classList.remove('hovering');
+                        follower.querySelector('svg g:nth-child(2)').classList.remove('hand-hover');
+                    }
+                });
+                
+                // 鼠标按下
+                window.addEventListener('mousedown', function(e) {
+                    isClicking = true;
+                    follower.classList.add('clicking');
+                    follower.querySelector('svg g:nth-child(2)').classList.add('hand-click');
+                    follower.querySelector('svg g:nth-child(2)').classList.remove('hand-hover');
+                });
+                
+                // 鼠标释放
+                window.addEventListener('mouseup', function(e) {
+                    isClicking = false;
+                    follower.classList.remove('clicking');
+                    follower.querySelector('svg g:nth-child(2)').classList.remove('hand-click');
+                    
+                    // 如果仍然悬停，恢复悬停状态
+                    const target = e.target;
+                    const isInteractive = target.closest('button, a, [role="button"], .card, .hero-btn, .nav-link');
+                    if (isInteractive) {
+                        follower.querySelector('svg g:nth-child(2)').classList.add('hand-hover');
+                    }
+                });
+                
+                // 鼠标拖动
+                window.addEventListener('dragstart', function(e) {
+                    isDragging = true;
+                    follower.classList.add('dragging');
+                });
+                
+                window.addEventListener('dragend', function(e) {
+                    isDragging = false;
+                    follower.classList.remove('dragging');
+                });
+                
+                // 平滑跟随动画
+                function animateFollower() {
+                    followerX += (mouseX - followerX) * 0.18;
+                    followerY += (mouseY - followerY) * 0.18;
+                    follower.style.left = followerX + 'px';
+                    follower.style.top = followerY + 'px';
+                    requestAnimationFrame(animateFollower);
+                }
+                animateFollower();
+            }
+            
+            // 滚动进度条
+            function initScrollProgress() {
+                const progressBar = document.createElement('div');
+                progressBar.className = 'scroll-progress';
+                document.body.appendChild(progressBar);
+                
+                window.addEventListener('scroll', function() {
+                    const scrollTop = window.scrollY;
+                    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    const progress = (scrollTop / docHeight) * 100;
+                    progressBar.style.width = progress + '%';
+                });
+            }
+            
+            // 导航栏滚动变化
+            function initNavScroll() {
+                const nav = document.querySelector('.main-navigation');
+                const hero = document.querySelector('.hero-carousel');
+                
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > hero.offsetHeight * 0.5) {
+                        nav.classList.add('scrolled');
+                    } else {
+                        nav.classList.remove('scrolled');
+                    }
+                });
+            }
+            
+            // 元素浮动动画
+            function initFloatAnimations() {
+                document.querySelectorAll('.float-animation').forEach((el, index) => {
+                    el.style.animationDelay = index * 0.2 + 's';
+                });
+            }
+            
+            // 初始化所有效果
+            createHeroParticles();
+            init3DCards();
+            initParallax();
+            initMouseFollower();
+            initScrollProgress();
+            initNavScroll();
+            initFloatAnimations();
+        });
+    </script>
+</body>
+</html>
